@@ -16,3 +16,5 @@ This workflow subscribes to `robot/sensors/#` via **MQTT Trigger**, checks a thr
 
 ## Notes
 - InfluxDB write uses line protocol via HTTP. You can swap this for the community **InfluxDB node** if installed.
+
+---
