@@ -12,3 +12,4 @@ Accepts POSTed samples, writes them to **InfluxDB**, and creates a **Grafana** d
 ```bash
 curl -X POST $WEBHOOK_URL -H "Content-Type: application/json"   -d '{ "sensor":"humidity", "value":55, "unit":"%" }'
 ```
+---
