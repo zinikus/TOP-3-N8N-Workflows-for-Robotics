@@ -1,0 +1,112 @@
+{
+  "name": "Robotics: Data to InfluxDB + Grafana Annotation",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "robotics/samples",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "Webhook1",
+      "name": "Webhook (POST sample)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "notes": "POST JSON like {sensor:\"humidity\", value:55, unit:\"%\"}"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INFLUX_URL || \"http://influxdb:8086\"}}/api/v2/write?org={{$env.INFLUX_ORG}}&bucket={{$env.INFLUX_BUCKET}}&precision=ns",
+        "authentication": "headerAuth",
+        "options": {
+          "bodyContentType": "raw",
+          "rawBodyType": "string"
+        },
+        "sendBody": true,
+        "jsonParameters": false,
+        "headerParametersJson": "{\"Authorization\":\"Token {{$env.INFLUX_TOKEN}}\",\"Content-Type\":\"text/plain; charset=utf-8\"}",
+        "rawBody": "={{`samples,sensor=${$json.sensor} value=${$json.value} ${Date.now()}000000`}}"
+      },
+      "id": "InfluxWrite2",
+      "name": "InfluxDB Write (HTTP)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "annotations",
+        "operation": "create",
+        "dashboardId": "",
+        "panelId": "",
+        "text": "={{`Sample ${$json.sensor}=${$json.value}${$json.unit || ''}`}}",
+        "time": "={{$now}}"
+      },
+      "id": "Grafana1",
+      "name": "Grafana: Add Annotation",
+      "type": "n8n-nodes-base.grafana",
+      "typeVersion": 1,
+      "position": [
+        840,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "responseBody": "={{ { status: 'ok', stored: true } }}",
+        "responseCode": 200
+      },
+      "id": "Respond1",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook (POST sample)": {
+      "main": [
+        [
+          {
+            "node": "InfluxDB Write (HTTP)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "InfluxDB Write (HTTP)": {
+      "main": [
+        [
+          {
+            "node": "Grafana: Add Annotation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Grafana: Add Annotation": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}
