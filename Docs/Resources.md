@@ -7,3 +7,5 @@
 - InfluxDB with n8n (community node): https://github.com/naskio/n8n-nodes-influxdb
 - InfluxDB via HTTP Request: https://n8n.io/integrations/influxdb-cloud/ and https://classic.yarnpkg.com/en/package/n8n-nodes-influxdb
 - MQTT + InfluxDB examples: https://n8n.io/integrations/influxdb-cloud/and/mqtt/
+
+---
