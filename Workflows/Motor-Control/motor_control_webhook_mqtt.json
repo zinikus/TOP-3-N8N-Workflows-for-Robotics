@@ -1,0 +1,76 @@
+{
+  "name": "Robotics: Motor Control via Webhook -> MQTT",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "robotics/motor",
+        "options": {}
+      },
+      "id": "WebhookCtrl",
+      "name": "Webhook (POST command)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "notes": "POST JSON like {direction:\"forward\", speed:128}"
+    },
+    {
+      "parameters": {
+        "protocol": "mqtt",
+        "topic": "robot/motor/cmd",
+        "qos": 0,
+        "options": {},
+        "payload": "={{$json}}"
+      },
+      "id": "MQTTPub",
+      "name": "MQTT Publish",
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [
+        560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "responseBody": "={{ { ack: true } }}",
+        "responseCode": 200
+      },
+      "id": "RespondCtrl",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        840,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook (POST command)": {
+      "main": [
+        [
+          {
+            "node": "MQTT Publish",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MQTT Publish": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}
