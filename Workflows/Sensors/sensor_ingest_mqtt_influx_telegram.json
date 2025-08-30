@@ -1,0 +1,141 @@
+{
+  "name": "Robotics: Sensor Ingest via MQTT -> InfluxDB + Telegram Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "protocol": "mqtt",
+        "topics": "robot/sensors/#",
+        "options": {}
+      },
+      "id": "MQTTTrigger1",
+      "name": "MQTT Trigger",
+      "type": "n8n-nodes-base.mqttTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "notes": "Consumes sensor messages (JSON) from topic robot/sensors/..."
+    },
+    {
+      "parameters": {
+        "functionCode": "const data = items[0].json;\n// Expect payload: {sensor:\"temp\", value: 32.5, unit:\"C\"}\nconst threshold = 30; // edit as needed\nreturn [{ json: { ...data, overThreshold: data.value > threshold } }];"
+      },
+      "id": "FuncCheck",
+      "name": "Check Threshold",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json[\"overThreshold\"]}}"
+            }
+          ]
+        }
+      },
+      "id": "IF1",
+      "name": "Over Threshold?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.INFLUX_URL || \"http://influxdb:8086\"}}/api/v2/write?org={{$env.INFLUX_ORG}}&bucket={{$env.INFLUX_BUCKET}}&precision=ns",
+        "authentication": "headerAuth",
+        "options": {
+          "bodyContentType": "raw",
+          "rawBodyType": "string"
+        },
+        "sendBody": true,
+        "jsonParameters": false,
+        "headerParametersJson": "{\"Authorization\":\"Token {{$env.INFLUX_TOKEN}}\",\"Content-Type\":\"text/plain; charset=utf-8\"}",
+        "rawBody": "={{`sensors,sensor=${$json.sensor} value=${$json.value} ${Date.now()}000000`}}"
+      },
+      "id": "InfluxWrite",
+      "name": "InfluxDB Write (HTTP)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1000,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "text": "={{`\u26a0\ufe0f ${$json.sensor} high: ${$json.value}${$json.unit || ''}`}}",
+        "additionalFields": {}
+      },
+      "id": "Telegram1",
+      "name": "Telegram Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        420
+      ],
+      "credentials": {}
+    }
+  ],
+  "connections": {
+    "MQTT Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Threshold",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Threshold": {
+      "main": [
+        [
+          {
+            "node": "Over Threshold?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Over Threshold?": {
+      "main": [
+        [
+          {
+            "node": "InfluxDB Write (HTTP)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "InfluxDB Write (HTTP)": {
+      "main": [
+        [
+          {
+            "node": "Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {}
+}
